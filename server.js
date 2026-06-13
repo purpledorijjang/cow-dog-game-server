@@ -6,6 +6,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   allowEIO3: true,
+  pingInterval: 10000, // 10초마다 핑 송신
+  pingTimeout: 30000,  // 30초 동안 응답 없으면 타임아웃 처리 (AVD 연결 단절 극대화 방지)
   cors: {
     origin: "*",
     methods: ["GET", "POST"]
