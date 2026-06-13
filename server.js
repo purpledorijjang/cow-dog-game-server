@@ -11,6 +11,10 @@ const io = new Server(server, {
   }
 });
 
+app.get('/', (req, res) => {
+    res.status(200).send('Server is running!');
+});
+
 // Unique instance ID to detect if players are hitting different server instances (e.g. during rolling deploys or scaling)
 const serverInstanceId = Math.random().toString(36).substring(2, 10).toUpperCase();
 console.log(`[START] 서버 인스턴스 ID: ${serverInstanceId}, 프로세스 ID: ${process.pid}`);
