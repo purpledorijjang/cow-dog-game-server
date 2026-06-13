@@ -48,35 +48,33 @@ io.on('connection', (socket) => {
         if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { console.log(`[JOIN_ROOM] JSON parse 실패: ${e.message}`); } }
         const { roomCode } = data || {};
         
+        if (!roomCode || typeof roomCode !== 'string') {
+            console.log(`[JOIN_ROOM] 방코드 누락 또는 유효하지 않음: roomCode=${roomCode}`);
+            socket.emit('join_error', JSON.stringify({ message: '방 코드가 유효하지 않습니다.', roomCode: roomCode }));
+            return;
+        }
+
         // 디버그용: 현재 이 서버 인스턴스에 존재하는 모든 방 목록 출력
         const allRooms = Array.from(io.sockets.adapter.rooms.keys());
         console.log(`[JOIN_ROOM] 현재 서버의 모든 방 목록: ${JSON.stringify(allRooms)} (방코드=${roomCode})`);
 
-        const room = io.sockets.adapter.rooms.get(roomCode);
-        console.log(`[JOIN_ROOM] roomCode=${roomCode}, roomExists=${!!room}, roomSize=${room ? room.size : 0}`);
+        // 방이 존재하지 않아도 자동으로 방에 참가 (방장 재연결 또는 첫 참가자 모두 대응)
+        await socket.join(roomCode);
+        console.log(`[JOIN_ROOM] 방 참가 완료: ${socket.id} -> ${roomCode}`);
         
-        if (room && typeof roomCode === 'string') {
-            await socket.join(roomCode);
-            console.log(`[JOIN_ROOM] 방 참가 성공: ${socket.id} -> ${roomCode}`);
-            
-            const players = Array.from(io.sockets.adapter.rooms.get(roomCode)).map(id => ({ id: id }));
-            console.log(`[JOIN_ROOM] players_updated 브로드캐스트: ${JSON.stringify(players)}`);
-            io.to(roomCode).emit('players_updated', JSON.stringify(players));
-            
-            const joinResponse = JSON.stringify({
-                roomCode: roomCode,
-                playerId: socket.id,
-                players: players,
-                serverInstanceId: serverInstanceId
-            });
-            console.log(`[JOIN_ROOM] room_joined 전송 to ${socket.id}: ${joinResponse}`);
-            socket.emit('room_joined', joinResponse);
-        } else {
-            console.log(`[JOIN_ROOM] 방 참가 실패: roomCode=${roomCode}, room=${room}`);
-            // 더 상세한 에러 메시지 전송 (디버깅 지원)
-            const errorMsg = `방을 찾을 수 없습니다. (요청방코드: ${roomCode}, 서버인스턴스: ${serverInstanceId}, 전체방수: ${allRooms.length})`;
-            socket.emit('error', errorMsg);
-        }
+        const room = io.sockets.adapter.rooms.get(roomCode);
+        const players = room ? Array.from(room).map(id => ({ id: id })) : [{ id: socket.id }];
+        console.log(`[JOIN_ROOM] players_updated 브로드캐스트: ${JSON.stringify(players)}`);
+        io.to(roomCode).emit('players_updated', JSON.stringify(players));
+        
+        const joinResponse = JSON.stringify({
+            roomCode: roomCode,
+            playerId: socket.id,
+            players: players,
+            serverInstanceId: serverInstanceId
+        });
+        console.log(`[JOIN_ROOM] room_joined 전송 to ${socket.id}: ${joinResponse}`);
+        socket.emit('room_joined', joinResponse);
     });
 
     socket.on('host_state', (state) => {
@@ -98,6 +96,13 @@ io.on('connection', (socket) => {
         }
         
         if (state && state.roomCode) {
+            const newPhase = state.phase;
+            const playersCount = state.players ? state.players.length : 0;
+            if (socket.lastLoggedPhase !== newPhase || socket.lastLoggedPlayersCount !== playersCount) {
+                console.log(`[HOST_STATE] 방장 ${socket.id} (방코드: ${state.roomCode}) 상태 변경 알림: 국면=${socket.lastLoggedPhase || '없음'} -> ${newPhase}, 인원수=${socket.lastLoggedPlayersCount || 0}명 -> ${playersCount}명`);
+                socket.lastLoggedPhase = newPhase;
+                socket.lastLoggedPlayersCount = playersCount;
+            }
             socket.to(state.roomCode).emit('host_state_sync', JSON.stringify(state));
         }
     });
