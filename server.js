@@ -272,7 +272,8 @@ io.on('connection', (socket) => {
         playersCount: data.playersCount || 1,
         leadEmoji: data.leadEmoji || '🐶',
         hostSocketId: socket.id,
-        hostUuid: data.hostUuid || socket.uuid // Save host player's hardware UUID from payload or socket context
+        hostUuid: data.hostUuid || socket.uuid, // Save host player's hardware UUID from payload or socket context
+        maxPlayers: data.maxPlayers || 4
       };
       console.log(`[LOBBY_UPDATE_SAVE] 저장완료 -> 방 #${data.roomCode}, 방장소켓: ${socket.id}, 방장UUID: ${lobbies[data.roomCode].hostUuid}`);
       // 모든 대기실 메뉴의 유저들에게 업데이트된 로비 상태 브로드캐스트
