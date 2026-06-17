@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
     let uuid;
     if (data) {
       if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch(e){}
+        try { data = JSON.parse(data); } catch (e) { }
       }
       uuid = data.uuid;
       if (uuid) {
@@ -182,7 +182,7 @@ io.on('connection', (socket) => {
         const inner = typeof parsedState.payload === 'string' ? JSON.parse(parsedState.payload) : parsedState.payload;
         inner.roomCode = parsedState.roomCode;
         parsedState = inner;
-      } catch(e) {}
+      } catch (e) { }
     }
 
     if (parsedState && parsedState.roomCode) {
@@ -196,7 +196,7 @@ io.on('connection', (socket) => {
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data);
-      } catch (e) {}
+      } catch (e) { }
     }
     const { roomCode, angle, power } = data || {};
     if (roomCode) {
@@ -213,7 +213,7 @@ io.on('connection', (socket) => {
     if (typeof data === 'string') {
       try {
         data = JSON.parse(data);
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const { roomCode, isReady, isReconnect, oldPlayerId, isExplicitExit } = data || {};
@@ -246,7 +246,7 @@ io.on('connection', (socket) => {
   // 6. 게임 다시 시작 (Host)
   socket.on('play_again', (data) => {
     if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch(e){}
+      try { data = JSON.parse(data); } catch (e) { }
     }
     const { roomCode } = data || {};
     if (roomCode) {
@@ -257,7 +257,7 @@ io.on('connection', (socket) => {
   // 7. 로비 상태 업데이트 (Host)
   socket.on('lobby_update', (data) => {
     if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch(e){}
+      try { data = JSON.parse(data); } catch (e) { }
     }
     console.log(`[LOBBY_UPDATE_REC] 수신 from 소켓: ${socket.id}, UUID: ${socket.uuid}, 데이터: ${JSON.stringify(data)}`);
     if (data && data.roomCode) {
@@ -273,7 +273,8 @@ io.on('connection', (socket) => {
         leadEmoji: data.leadEmoji || '🐶',
         hostSocketId: socket.id,
         hostUuid: data.hostUuid || socket.uuid, // Save host player's hardware UUID from payload or socket context
-        maxPlayers: data.maxPlayers || 4
+        maxPlayers: data.maxPlayers || 4,
+        isStarted: data.isStarted === true
       };
       console.log(`[LOBBY_UPDATE_SAVE] 저장완료 -> 방 #${data.roomCode}, 방장소켓: ${socket.id}, 방장UUID: ${lobbies[data.roomCode].hostUuid}`);
       // 모든 대기실 메뉴의 유저들에게 업데이트된 로비 상태 브로드캐스트
@@ -324,7 +325,7 @@ io.on('connection', (socket) => {
       console.log(`  - 유령방 검사: 방 #${roomCode}, 방장UUID: ${lobby.hostUuid}, 방장소켓: ${lobby.hostSocketId}`);
       if (lobby.hostUuid === uuid) {
         console.log(`  => [CLEANUP TARGET] 매칭 성공! 구 유령 방 #${roomCode} 즉시 폭파 결정`);
-        
+
         // 이전 방장 좀비 소켓 강제 해제 실행하여 확실히 숨통을 끊음 (A-1 소켓 제거)
         const oldHostSocket = io.sockets.sockets.get(lobby.hostSocketId);
         if (oldHostSocket) {
@@ -351,7 +352,7 @@ io.on('connection', (socket) => {
   // 9. 방 강제 종료 (Host)
   socket.on('room_closed', (data) => {
     if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch(e){}
+      try { data = JSON.parse(data); } catch (e) { }
     }
     const { roomCode } = data || {};
     if (roomCode) {
@@ -369,7 +370,7 @@ io.on('connection', (socket) => {
   // 10. 방 나가기 (Client)
   socket.on('leave_room', (data) => {
     if (typeof data === 'string') {
-      try { data = JSON.parse(data); } catch(e){}
+      try { data = JSON.parse(data); } catch (e) { }
     }
     const { roomCode } = data || {};
     if (roomCode) {
@@ -443,9 +444,9 @@ setInterval(() => {
     const isHostAlive = hostSocket && hostSocket.connected;
     const socketUuid = hostSocket ? hostSocket.uuid : 'N/A';
     const isUuidMatch = hostSocket ? (hostSocket.uuid === lobby.hostUuid) : false;
-    
+
     console.log(`  - GC 검사: 방 #${roomCode}, 방장소켓: ${lobby.hostSocketId}, 실제존재여부: ${!!hostSocket}, 연결상태: ${isHostAlive}, UUID일치여부: ${isUuidMatch} (소켓UUID: ${socketUuid} vs 방장UUID: ${lobby.hostUuid})`);
-    
+
     // 만약 방장 소켓이 유실되었거나 연결 끊긴 상태이거나, 혹은 살아있지만 UUID가 일치하지 않는 경우
     if (!isHostAlive || !isUuidMatch) {
       // 이미 10초 재연결 타이머가 설정되어 대기 중인지 확인
