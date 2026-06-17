@@ -238,7 +238,8 @@ io.on('connection', (socket) => {
         guestId: socket.id,
         isReady: isReady,
         nickname: data.nickname,
-        emoji: data.emoji
+        emoji: data.emoji,
+        isSpectator: data.isSpectator === true
       }));
     }
   });
